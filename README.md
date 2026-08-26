@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Find My Home
 
-## Getting Started
+A mobile-first, private household inventory built with Next.js, TypeScript, Tailwind CSS, Supabase, and browser-based QR scanning. The included demo mode is immediately browsable without credentials.
 
-First, run the development server:
+## Requirements
+
+- Node.js 20.9 or newer
+- npm
+- A Supabase project for persistent accounts, records, and secure file storage
+
+## Run locally
+
+```bash
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). The current UI uses the bundled demo inventory so every flow is available before Supabase is connected.
+
+The development script binds to `127.0.0.1` and uses Webpack for compatibility with restricted local environments. To preview on another device on your network, run `npm run dev -- --hostname 0.0.0.0` instead.
+
+## Supabase setup
+
+1. Create a Supabase project.
+2. Copy `.env.example` to `.env.local` and add the project URL and anon key from **Project Settings → API**.
+3. In the Supabase SQL Editor, run `supabase/migrations/20260825000000_initial_schema.sql`.
+4. Enable email/password authentication in **Authentication → Providers**.
+5. Create a test user, replace the placeholder UUID in `supabase/seed.sql` with that user's `auth.users.id`, and run the seed file.
+
+The migration creates homes, future-ready household membership, infinitely nested locations, items, movement history, private storage, full-text search support, and row-level security. Storage paths must begin with the authenticated user's UUID, e.g. `{user-id}/items/{item-id}/photo.jpg`.
+
+## QR testing
+
+- Open any item or location and choose **QR label**.
+- Print the label or download its PNG.
+- Visit `/scan` on a phone over HTTPS, grant camera permission, and scan the label.
+- For local testing without a camera, paste `canadian-passport`, `black-safe`, or a generated record URL into manual entry.
+
+QR data contains only the app URL and public-safe record identifier. Inventory details are never embedded in a QR code and should be protected by authentication when the Supabase data layer is enabled.
+
+## Useful commands
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run lint
+npm run build
+npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Project map
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `src/app` — App Router pages and user flows
+- `src/components` — shared shell, cards, and QR label UI
+- `src/lib/demo-data.ts` — immediate demo dataset
+- `src/lib/supabase` — browser/server Supabase clients
+- `supabase/migrations` — schema, indexes, storage rules, RLS, move transaction
+- `supabase/seed.sql` — requested Canada Home sample inventory
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Production checklist
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Wire form actions and route loaders to the provided Supabase clients, enforce authenticated route middleware, add generated PWA icons, configure a trusted production origin for QR URLs, and test all policies with two separate accounts before importing private data.
