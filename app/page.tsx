@@ -1,52 +1,77 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
 
-type Manager = { code:string; name:string; role:string; description:string; status:'Live'|'Soon'; accent:string; symbol:string; tasks?:number };
+type View = 'overview' | 'projects' | 'people' | 'activity' | 'settings';
+type Project = { id:number; code:string; name:string; description:string; category:string; status:'Live'|'Building'|'Paused'; access:'Private'|'Family'|'Public'; color:string };
 
-const managers: Manager[] = [
-  { code:'YEM', name:'Your Email Manager', role:'Communication', description:'Sorts, drafts, prioritizes, and keeps every important conversation moving.', status:'Live', accent:'#ff6542', symbol:'↗', tasks:18 },
-  { code:'YTP', name:'Your Trip Manager', role:'Travel', description:'Plans complete trips—from the first idea to the flight home—in one thoughtful itinerary.', status:'Soon', accent:'#c8ef66', symbol:'⌁' },
-  { code:'YFM', name:'Your Finance Manager', role:'Money', description:'Turns transactions and budgets into clear, timely financial decisions.', status:'Soon', accent:'#b9a7ff', symbol:'$' },
-  { code:'YHM', name:'Your Health Manager', role:'Wellbeing', description:'Connects routines, appointments, and progress into a healthier everyday rhythm.', status:'Soon', accent:'#7dd8ff', symbol:'+' },
+const initialProjects: Project[] = [
+  { id:1, code:'YE', name:'Your Expense Manager', description:'Track budgets, expenses and monthly goals.', category:'Finance', status:'Live', access:'Private', color:'coral' },
+  { id:2, code:'YH', name:'Your Household Manager', description:'Find, organize and track everything at home.', category:'Home', status:'Live', access:'Family', color:'blue' },
+  { id:3, code:'YS', name:'Your House Structure Manager', description:'Manage rooms, maintenance and property records.', category:'Property', status:'Building', access:'Private', color:'gold' },
+  { id:4, code:'FT', name:'Family Tree', description:'Preserve family connections, stories and history.', category:'Family', status:'Building', access:'Family', color:'purple' },
+  { id:5, code:'DR', name:'Dayaro Radio', description:'Gujarati music and community radio experience.', category:'Media', status:'Live', access:'Public', color:'green' },
+  { id:6, code:'GR', name:'ST Gujarat Radio', description:'A live radio home for Gujarat listeners.', category:'Media', status:'Live', access:'Public', color:'pink' },
 ];
 
-const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const nav = [
+  { id:'overview' as View, icon:'⌂', label:'Overview' }, { id:'projects' as View, icon:'▦', label:'Projects' },
+  { id:'people' as View, icon:'♙', label:'People' }, { id:'activity' as View, icon:'◷', label:'Activity' },
+  { id:'settings' as View, icon:'⚙', label:'Settings' },
+];
 
 export default function Home() {
-  const [query, setQuery] = useState('');
-  const [notice, setNotice] = useState('');
-  const filtered = useMemo(() => {
-    const term = query.toLowerCase().trim();
-    return term ? managers.filter((m) => `${m.code} ${m.name} ${m.role}`.toLowerCase().includes(term)) : managers;
-  }, [query]);
-  function announce(message:string) { setNotice(message); window.setTimeout(() => setNotice(''), 2800); }
+  const [view,setView]=useState<View>('overview');
+  const [projects,setProjects]=useState(initialProjects);
+  const [filter,setFilter]=useState('All');
+  const [query,setQuery]=useState('');
+  const [modal,setModal]=useState(false);
+  const [notice,setNotice]=useState('');
+  const visible=useMemo(()=>projects.filter(p=>(filter==='All'||p.status===filter)&&p.name.toLowerCase().includes(query.toLowerCase())),[projects,filter,query]);
+  const openView=(next:View)=>{setView(next);setQuery('');};
+  const saveProject=(e:FormEvent<HTMLFormElement>)=>{e.preventDefault();const form=new FormData(e.currentTarget);const name=String(form.get('name'));const code=name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();setProjects(x=>[...x,{id:Date.now(),code,name,description:String(form.get('description')),category:String(form.get('category')),status:String(form.get('status')) as Project['status'],access:String(form.get('access')) as Project['access'],color:'mint'}]);setModal(false);setNotice(`${name} was added`);setTimeout(()=>setNotice(''),2500);};
 
-  return <main>
-    <nav className="nav shell" aria-label="Primary navigation">
-      <a className="brand" href="#top" aria-label="YAM home"><span>YAM</span><i>●</i></a>
-      <div className="navlinks"><a href="#managers">Managers</a><a href="#activity">Activity</a><a href="#about">About</a></div>
-      <button className="profile" onClick={() => announce('Profile settings are coming next.')}><span>YD</span><b>Yagnik</b></button>
-    </nav>
-
-    <section className="hero shell" id="top">
-      <div className="eyebrow"><span /> ONE HOME. A WORLD OF MANAGERS.</div>
-      <h1>One letter at a time.<br /><em>Everything, managed.</em></h1>
-      <div className="hero-bottom"><p>YAM—Your All Managers—is the parent portfolio for a growing family of focused products. From email to travel, every manager is its own project with one shared standard.</p><a className="round-link" href="#managers" aria-label="Explore the YAM family">↓</a></div>
+  return <main className="app-shell">
+    <aside className="sidebar">
+      <button className="brand-mark" onClick={()=>openView('overview')} aria-label="YAM home">Y</button>
+      <nav aria-label="Primary navigation">{nav.map(item=><button key={item.id} onClick={()=>openView(item.id)} className={`nav-button ${view===item.id?'active':''}`} aria-label={item.label} title={item.label}><span>{item.icon}</span><em>{item.label}</em></button>)}</nav>
+      <button className="avatar" onClick={()=>openView('settings')} aria-label="Profile">YD</button>
+    </aside>
+    <section className="workspace">
+      <header className="topbar">
+        <div><p className="eyebrow">YAM PROTOTYPE</p><h1>{view==='overview'?'Good evening, Yagnik.':nav.find(n=>n.id===view)?.label}</h1></div>
+        <div className="top-actions">{(view==='overview'||view==='projects')&&<input className="global-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search projects…" aria-label="Search projects"/>}<button className="icon-button" aria-label="Notifications" onClick={()=>setNotice('You are all caught up')}>●</button><button className="primary-button" onClick={()=>setModal(true)}>+ Add project</button></div>
+      </header>
+      <div className="content">
+        {view==='overview'&&<Overview projects={visible} setView={openView} filter={filter} setFilter={setFilter}/>} 
+        {view==='projects'&&<Projects projects={visible} allCount={projects.length} filter={filter} setFilter={setFilter}/>} 
+        {view==='people'&&<People/>}
+        {view==='activity'&&<Activity/>}
+        {view==='settings'&&<Settings setNotice={setNotice}/>} 
+      </div>
     </section>
-
-    <section className="manager-section" id="managers"><div className="shell">
-      <div className="section-head"><div><p className="kicker">01 — THE PORTFOLIO</p><h2>Different projects.<br />One YAM family.</h2></div><label className="search"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find a project" aria-label="Find a project" /></label></div>
-      <div className="manager-grid">{filtered.map((manager,index) => <article className={`manager-card ${manager.status === 'Live' ? 'active' : ''}`} key={manager.code} style={{'--accent':manager.accent} as React.CSSProperties}>
-        <div className="card-top"><span className="index">0{index+1}</span><span className={`status ${manager.status.toLowerCase()}`}>{manager.status === 'Live' && <i />} {manager.status}</span></div>
-        <div className="manager-mark"><span>{manager.symbol}</span></div><p className="role">{manager.role}</p><h3>{manager.code}</h3><h4>{manager.name}</h4><p className="description">{manager.description}</p>
-        <div className="card-foot">{manager.tasks ? <span><b>01</b> live project</span> : <span>Independent project coming soon</span>}<button onClick={() => announce(manager.status === 'Live' ? 'Opening the YEM project soon.' : `${manager.code} added to your early access list.`)}>{manager.status === 'Live' ? 'Visit project ↗' : 'Notify me'}</button></div>
-      </article>)}</div>{filtered.length === 0 && <div className="empty">No manager found. Try another specialty.</div>}
-    </div></section>
-
-    <section className="activity shell" id="activity"><div><p className="kicker">02 — A TO Z</p><h2>A manager for<br />every chapter.</h2><p className="series-copy">Each letter can become a distinct, purposeful product. YAM keeps the family recognizable, connected, and ready to expand.</p></div><div className="alphabet" aria-label="A to Z manager roadmap">{alphabet.map((letter) => { const code = letter === 'T' ? 'YTP' : `Y${letter}M`; const planned = ['E','F','H','T'].includes(letter); return <button key={letter} className={planned ? 'planned' : ''} onClick={() => announce(planned ? `${code} is a planned family project.` : `${code} idea space is open.`)}><span>{code}</span><small>{planned ? 'Planned' : 'Open'}</small></button> })}</div></section>
-
-    <footer id="about"><div className="shell footer-inner"><div><span className="footer-logo">YAM.</span><p>Your All Managers<br />An A–Z family of focused products.</p></div><div className="footer-cta"><p>One parent brand.<br />Endless possibilities.</p><button onClick={() => announce('The next YAM project starts here.')}>Explore the family <span>↗</span></button></div><div className="legal"><span>© 2026 YAM</span><span>Every manager has one job.</span></div></div></footer>
-    <div className={`toast ${notice ? 'show' : ''}`} role="status" aria-live="polite">{notice}</div>
+    {modal&&<div className="modal-backdrop" onMouseDown={()=>setModal(false)}><form className="modal" onSubmit={saveProject} onMouseDown={e=>e.stopPropagation()}><div className="modal-head"><div><p className="eyebrow">PROJECT DIRECTORY</p><h2>Add a project</h2></div><button type="button" onClick={()=>setModal(false)} aria-label="Close">×</button></div><label>Project name<input name="name" required placeholder="Your Vehicle Manager" autoFocus/></label><label>Description<textarea name="description" required placeholder="What does this project help you manage?"/></label><div className="form-grid"><label>Category<select name="category"><option>Personal</option><option>Finance</option><option>Home</option><option>Family</option><option>Media</option></select></label><label>Status<select name="status"><option>Building</option><option>Live</option><option>Paused</option></select></label></div><label>Who can access it?<select name="access"><option>Private</option><option>Family</option><option>Public</option></select></label><div className="modal-actions"><button type="button" className="secondary-button" onClick={()=>setModal(false)}>Cancel</button><button className="primary-button" type="submit">Add to YAM</button></div></form></div>}
+    {notice&&<div className="toast">✓ {notice}</div>}
   </main>;
 }
+
+function Overview({projects,setView,filter,setFilter}:{projects:Project[];setView:(v:View)=>void;filter:string;setFilter:(v:string)=>void}) {return <>
+  <section className="hero-panel"><div><span className="hero-label">YOUR DIGITAL ECOSYSTEM</span><h2>Everything you manage.<br/>One place to begin.</h2><p>Access every Y(A–Z)M project, monitor its status, and keep your digital life beautifully organized.</p><button className="hero-button" onClick={()=>setView('projects')}>Explore all projects <span>→</span></button></div><div className="hero-orbit"><i className="dot d1">$</i><i className="dot d2">⌂</i><i className="dot d3">♫</i><div className="orbit one"/><div className="orbit two"/><div className="orbit-center">YAM</div></div></section>
+  <section className="stat-strip"><div><strong>06</strong><span>Total projects</span></div><div><strong>04</strong><span>Live and ready</span></div><div><strong>03</strong><span>Shared with family</span></div><p><b>System status</b><span><i/> Everything is running smoothly</span></p></section>
+  <SectionHead title="Projects" label="YOUR WORKSPACE"><Filters filter={filter} setFilter={setFilter}/></SectionHead>
+  <ProjectGrid projects={projects}/>
+</>}
+
+function Projects({projects,allCount,filter,setFilter}:{projects:Project[];allCount:number;filter:string;setFilter:(v:string)=>void}) {return <>
+  <section className="page-intro"><div><p className="eyebrow">PROJECT DIRECTORY</p><h2>Your Y(A–Z)M ecosystem</h2><p>Every tool in your personal management suite, organized in one place.</p></div><div className="big-count"><strong>{String(allCount).padStart(2,'0')}</strong><span>Projects</span></div></section>
+  <SectionHead title="All projects" label="BROWSE & MANAGE"><Filters filter={filter} setFilter={setFilter}/></SectionHead><ProjectGrid projects={projects}/>
+</>}
+
+function ProjectGrid({projects}:{projects:Project[]}) {return <section className="project-grid">{projects.length?projects.map(project=><article className="project-card" key={project.id}><div className={`project-icon ${project.color}`}>{project.code}</div><span className={`status ${project.status.toLowerCase()}`}>{project.status}</span><h4>{project.name}</h4><p>{project.description}</p><div className="project-meta"><span>{project.category}</span><span>{project.access}</span></div><button className="open-project">Open project <span>↗</span></button></article>):<div className="empty-state">No projects match this view.</div>}</section>}
+function Filters({filter,setFilter}:{filter:string;setFilter:(v:string)=>void}) {return <div className="view-actions">{['All','Live','Building','Paused'].map(x=><button key={x} onClick={()=>setFilter(x)} className={`filter ${filter===x?'active':''}`}>{x}</button>)}</div>}
+function SectionHead({title,label,children}:{title:string;label:string;children:React.ReactNode}) {return <div className="section-heading"><div><p className="eyebrow">{label}</p><h3>{title}</h3></div>{children}</div>}
+
+function People(){const people=[['YD','Yagnik Donda','Owner','All projects'],['JD','Jinal Donda','Family','3 projects'],['KD','Kavya Donda','Family','2 projects']];return <><section className="page-intro"><div><p className="eyebrow">PEOPLE & PERMISSIONS</p><h2>Your trusted circle</h2><p>Control who can see and use each part of your YAM ecosystem.</p></div><button className="outline-button">+ Invite person</button></section><div className="people-list"><div className="list-head"><span>Person</span><span>Role</span><span>Access</span><span></span></div>{people.map((p,i)=><div className="person-row" key={p[1]}><div className={`person-avatar p${i}`}>{p[0]}</div><div><b>{p[1]}</b><small>{i?'Family member':'yam.owner@example.com'}</small></div><span className="role-badge">{p[2]}</span><span>{p[3]}</span><button>•••</button></div>)}</div></>}
+function Activity(){const events=[['Project added','ST Gujarat Radio was added to your workspace.','Today · 8:42 PM','GR'],['Access changed','Jinal can now access Your Household Manager.','Today · 6:15 PM','YH'],['Project updated','Your Expense Manager status changed to Live.','Yesterday · 9:20 AM','YE'],['New person invited','Kavya joined your YAM family workspace.','Aug 27 · 3:10 PM','KD']];return <><section className="page-intro"><div><p className="eyebrow">RECENT ACTIVITY</p><h2>What’s happening</h2><p>A clear history of important changes across your workspace.</p></div></section><div className="timeline">{events.map((e,i)=><article key={e[0]}><div className={`timeline-icon c${i}`}>{e[3]}</div><div><b>{e[0]}</b><p>{e[1]}</p><small>{e[2]}</small></div></article>)}</div></>}
+function Settings({setNotice}:{setNotice:(v:string)=>void}){return <><section className="page-intro"><div><p className="eyebrow">CENTRAL SETTINGS</p><h2>Make YAM yours</h2><p>Update your workspace identity, preferences and privacy.</p></div></section><div className="settings-grid"><section><h3>Workspace profile</h3><p>The name and description shown throughout your central portal.</p><label>Workspace name<input defaultValue="YAM Prototype"/></label><label>Description<textarea defaultValue="One central place for every Y(A–Z)M project."/></label></section><section><h3>Preferences</h3><p>Choose how your project portal behaves.</p><Toggle title="Weekly summary" text="Receive a simple activity summary every Sunday."/><Toggle title="Project status alerts" text="Notify me when a project becomes unavailable."/><Toggle title="Compact project cards" text="Display more projects in each row."/></section><section className="security"><h3>Privacy & security</h3><p>Your central workspace is currently configured as private.</p><div className="security-row"><span>Workspace visibility<small>Only invited people can enter</small></span><b>Private</b></div></section></div><button className="primary-button save-settings" onClick={()=>{setNotice('Settings saved');setTimeout(()=>setNotice(''),2500)}}>Save changes</button></>}
+function Toggle({title,text}:{title:string;text:string}){const [on,setOn]=useState(true);return <div className="toggle-row"><span><b>{title}</b><small>{text}</small></span><button className={`toggle ${on?'on':''}`} onClick={()=>setOn(!on)} aria-pressed={on}><i/></button></div>}

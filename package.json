@@ -1,14 +1,14 @@
 {
-  "name": "sites-project",
+  "name": "yam-prototype",
   "version": "0.1.0",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
   },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "vinext dev",
+    "build": "vinext build",
+    "start": "vinext start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
   },
   "dependencies": {
